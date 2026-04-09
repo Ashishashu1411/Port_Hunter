@@ -1,0 +1,7 @@
+<<<<<<< HEAD
+# PortHunter Scan Reports
+Generated reports will be saved here.
+=======
+# PortHunter Scan Reports
+Generated reports will be saved here.
+>>>>>>> d92a47fbaed77d1988ed25cc512c8d398ecd0871
