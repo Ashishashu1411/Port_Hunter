@@ -1,7 +1,11 @@
 import logging
 import os
 import socket
+import random
+from datetime import datetime
 from pathlib import Path
+
+USE_DUMMY = True  # 🔥 True = Render demo | False = real scan (local)
 
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
@@ -25,7 +29,7 @@ logger = logging.getLogger("porthunter")
 init_db()
 
 
-# ✅ Frontend route
+# Frontend route
 @app.route("/", methods=["GET"])
 def home():
     return send_from_directory(BASE_DIR, "index.html")
@@ -41,13 +45,13 @@ def script():
     return send_from_directory(BASE_DIR, "script.js")
 
 
-# ✅ Health check route
+# Health check route
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({"message": "PortHunter Backend Running"}), 200
 
 
-# ✅ Scan API
+#  Scan API (DUMMY + REAL)
 @app.route("/scan", methods=["POST"])
 def scan():
     data = request.get_json(silent=True) or {}
@@ -58,6 +62,26 @@ def scan():
 
     logger.info("Scan request received for target_ip=%s", target_ip)
 
+    #  DUMMY MODE
+    if USE_DUMMY:
+        ports_pool = [
+            {"port": 80, "service": "http"},
+            {"port": 22, "service": "ssh"},
+            {"port": 443, "service": "https"},
+            {"port": 21, "service": "ftp"},
+            {"port": 25, "service": "smtp"},
+            {"port": 3306, "service": "mysql"},
+            {"port": 8080, "service": "http-proxy"}
+        ]
+
+        return jsonify({
+            "host_ip": target_ip,
+            "status": random.choices(["up", "down"], weights=[80, 20])[0],
+            "timestamp": datetime.now().isoformat(),
+            "open_ports": random.sample(ports_pool, k=random.randint(1, 4))
+        }), 200
+
+    #  Local machine
     try:
         result = scan_target(target_ip)
         response = {
@@ -79,7 +103,7 @@ def scan():
         return jsonify({"error": "Internal server error"}), 500
 
 
-# ✅ History API (NEW 🔥)
+#  History API
 @app.route("/history", methods=["GET"])
 def history():
     try:
@@ -90,7 +114,6 @@ def history():
 
 
 def get_available_port(preferred_port):
-    """Use the preferred port when possible, otherwise find a free local port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
